@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLU-Nummern Quiz</title>
+    <style>
+        /* Core Variables & Reset */
+        :root {
+            --primary: #FF7F00; /* Orange */
+            --primary-hover: #e67300;
+            --danger: #dc2626; /* Red for wrong */
+            --success: #16a34a; /* Green for correct */
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --border: #e5e7eb;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Widget Container */
+        .widget-container {
+            width: 95%; /* Fluid width for mobile */
+            max-width: 600px; /* Limit width for single column view */
+            min-height: 650px; /* Minimum height requested */
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            max-height: 85vh; /* Adapts height to screen size */
+        }
+
+        /* Header */
+        .widget-header {
+            background: var(--card-bg);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0; /* Prevents header from shrinking */
+        }
+
+        .widget-header h2 {
+            font-size: 1.25rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .score-badge {
+            background: var(--bg-color);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid var(--border);
+        }
+
+        /* Quiz List - Flexbox Layout */
+        .quiz-list {
+            padding: 20px;
+            display: flex;
+            flex-wrap: wrap; /* Allows wrapping */
+            gap: 24px;
+            overflow-y: auto; /* Internal scrolling */
+            flex-grow: 1; /* Fills remaining height */
+        }
+
+        /* Scrollbar Styling */
+        .quiz-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .quiz-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .quiz-list::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 4px;
+        }
+        .quiz-list::-webkit-scrollbar-thumb:hover {
+            background-color: #9ca3af;
+        }
+
+        /* Individual Quiz Card */
+        .quiz-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            
+            /* Force single column layout */
+            flex: 1 1 100%; 
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .quiz-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(255, 127, 0, 0.15); /* Orange shadow hint */
+            transform: translateY(-2px);
+        }
+
+        /* Product Image Area */
+        .product-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            border: 1px solid var(--border);
+        }
+
+        /* Product Name */
+        .product-name {
+            font-weight: 700;
+            color: var(--text-main);
+            font-size: 1.15rem;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        /* Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        /* Option Buttons */
+        .btn-option {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-option:hover:not(:disabled) {
+            background-color: #e5e7eb;
+            border-color: #d1d5db;
+        }
+
+        .btn-option.correct {
+            background-color: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-option.wrong {
+            background-color: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .btn-option:disabled {
+            cursor: default;
+            opacity: 0.8;
+        }
+        
+        /* Fade out disabled/unselected options slightly */
+        .quiz-card.answered .btn-option:not(.correct):not(.wrong) {
+            opacity: 0.4;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Empty State */
+        .empty-state {
+            width: 100%;
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+        }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 600px) {
+            .widget-header h2 {
+                font-size: 1.1rem;
+            }
+            
+            body {
+                padding: 10px;
+            }
+            
+            .quiz-list {
+                padding: 16px;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-container">
+        <!-- Header -->
+        <div class="widget-header">
+            <h2>PLU-Nummern Quiz</h2>
+            <span class="score-badge" id="scoreDisplay">0 / 0 Richtig</span>
+        </div>
+
+        <!-- Quiz List -->
+        <div class="quiz-list" id="quizListContainer">
+            <!-- Quiz items will be injected here via JS -->
+            <div class="empty-state">Lade Fragen...</div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast" class="toast">
+        <span id="toastIcon"></span>
+        <span id="toastMessage">Nachricht</span>
+    </div>
+
+    <script>
+        /**
+         * Quiz Data Configuration
+         * Images are sourced from Unsplash source URLs for demonstration.
+         */
+        const quizData = [
+            {
+                id: 1,
+                name: "Apfel Boskoop",
+                image: "https://images.unsplash.com/photo-1570913149827-d2ac84ab3f9a?auto=format&fit=crop&w=500&q=80",
+                correctPLU: 4017,
+                options: [4101, 3017, 4017, 3205]
+            },
+            {
+                id: 2,
+                name: "Birne Williams",
+                image: "https://images.unsplash.com/photo-1615484477778-ca3b77940c25?auto=format&fit=crop&w=500&q=80",
+                correctPLU: 4401,
+                options: [4401, 4023, 3012, 4111]
+            },
+            {
+                id: 3,
+                name: "Lauch",
+                image: "https://images.unsplash.com/photo-1603048297172-c92544798d5e?auto=format&fit=crop&w=500&q=80",
+                correctPLU: 4629,
+                options: [3080, 4629, 4815, 3145]
+            }
+        ];
+
+        // State management
+        let totalAnswered = 0;
+        let correctAnswers = 0;
+
+        /**
+         * Initialize the Widget
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderQuiz();
+        });
+
+        /**
+         * Render the list of quiz cards
+         */
+        function renderQuiz() {
+            const container = document.getElementById('quizListContainer');
+            updateScore(); // Init header
+            
+            container.innerHTML = '';
+
+            quizData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'quiz-card';
+                card.id = `card-${item.id}`;
+                
+                // Shuffle options for randomness (optional, currently static as per data)
+                // const shuffledOptions = [...item.options].sort(() => Math.random() - 0.5);
+                const shuffledOptions = item.options;
+
+                let optionsHtml = '';
+                shuffledOptions.forEach(plu => {
+                    optionsHtml += `<button class="btn-option" onclick="handleAnswer(${item.id}, ${plu}, this)">${plu}</button>`;
+                });
+
+                card.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}" class="product-image">
+                    <div class="product-name">${item.name}</div>
+                    <div class="options-grid">
+                        ${optionsHtml}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        /**
+         * Handle answer selection
+         */
+        function handleAnswer(itemId, selectedPLU, btnElement) {
+            const item = quizData.find(q => q.id === itemId);
+            const card = document.getElementById(`card-${itemId}`);
+            
+            // Prevent multiple clicks
+            if (card.classList.contains('answered')) return;
+            card.classList.add('answered');
+
+            const allButtons = card.querySelectorAll('.btn-option');
+            
+            // Check correctness
+            const isCorrect = selectedPLU === item.correctPLU;
+
+            // Update UI
+            if (isCorrect) {
+                btnElement.classList.add('correct');
+                correctAnswers++;
+                showToast(true, "Richtig!");
+            } else {
+                btnElement.classList.add('wrong');
+                // Highlight the correct one
+                allButtons.forEach(btn => {
+                    if (parseInt(btn.innerText) === item.correctPLU) {
+                        btn.classList.add('correct');
+                    }
+                });
+                showToast(false, `Leider falsch! Richtig wäre ${item.correctPLU}`);
+            }
+
+            // Disable all buttons
+            allButtons.forEach(btn => btn.disabled = true);
+
+            // Update Score
+            totalAnswered++;
+            updateScore();
+        }
+
+        /**
+         * Update the score in the header
+         */
+        function updateScore() {
+            const badge = document.getElementById('scoreDisplay');
+            badge.textContent = `${correctAnswers} / ${quizData.length} Richtig`;
+        }
+
+        /**
+         * Show a temporary toast message
+         */
+        function showToast(isSuccess, message) {
+            const toast = document.getElementById('toast');
+            const msgSpan = document.getElementById('toastMessage');
+            const iconSpan = document.getElementById('toastIcon');
+            
+            // Set Icon
+            iconSpan.innerHTML = isSuccess 
+                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+            msgSpan.textContent = message;
+            toast.classList.add('show');
+            
+            // Clear existing timeout if multiple clicks happen fast
+            if (toast.timeoutId) clearTimeout(toast.timeoutId);
+
+            toast.timeoutId = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
