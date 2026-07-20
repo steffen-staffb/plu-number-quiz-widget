@@ -1,410 +1,293 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLU-Nummern Quiz</title>
-    <style>
-        /* Core Variables & Reset */
+<!-- Staffbase brand color via ?brand= URL param (sb-brand-url-param) -->
+<script>(function(){try{var b=new URLSearchParams(location.search).get('brand');if(b&&/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(b)){document.documentElement.style.setProperty('--sb-brand',b);}}catch(e){}})();</script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="widget-name" content="Quarterly Performance">
+<meta name="widget-description" content="Animated revenue bars for the last 5 quarters plus year-to-date">
+<meta name="widget-tags" content="Reports & Dashboards, Finance">
+<title>Quarterly Performance</title>
+
+<style>
+    :root {
+        --primary: var(--sb-brand, #2563eb);
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        /* Explicit design request: fixed brand-red background with white
+           bars/text, regardless of light/dark scheme. */
+        --text: #ffffff;
+        --text-light: rgba(255, 255, 255, 0.75);
+        --bg: #E1000F;
+        --bg-gray: #f9fafb;
+        --border: #e5e7eb;
+    }
+    @media (prefers-color-scheme: dark) {
         :root {
-            --primary: #FF7F00; /* Orange */
-            --primary-hover: #e67300;
-            --danger: #dc2626; /* Red for wrong */
-            --success: #16a34a; /* Green for correct */
-            --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-sub: #6b7280;
-            --border: #e5e7eb;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --primary: var(--sb-brand, #3b9eff);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --text: #ffffff;
+            --text-light: rgba(255, 255, 255, 0.75);
+            --bg: #E1000F;
+            --bg-gray: #111827;
+            --border: #374151;
         }
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+    * { box-sizing: border-box; }
 
-        body {
-            background-color: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+    }
 
-        /* Widget Container */
-        .widget-container {
-            width: 95%; /* Fluid width for mobile */
-            max-width: 600px; /* Limit width for single column view */
-            min-height: 650px; /* Minimum height requested */
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            max-height: 85vh; /* Adapts height to screen size */
-        }
+    .widget {
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+        background: var(--bg);
+        border-radius: 14px;
+        padding: 20px 20px 24px;
+    }
 
-        /* Header */
-        .widget-header {
-            background: var(--card-bg);
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0; /* Prevents header from shrinking */
-        }
+    .widget h2 {
+        margin: 0 0 20px 0;
+        text-align: left;
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        color: var(--text);
+    }
 
-        .widget-header h2 {
-            font-size: 1.25rem;
-            color: var(--text-main);
-            font-weight: 700;
-        }
+    .cw-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
 
-        .score-badge {
-            background: var(--bg-color);
-            color: var(--primary);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            border: 1px solid var(--border);
-        }
+    .cw-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
 
-        /* Quiz List - Flexbox Layout */
-        .quiz-list {
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap; /* Allows wrapping */
-            gap: 24px;
-            overflow-y: auto; /* Internal scrolling */
-            flex-grow: 1; /* Fills remaining height */
-        }
+    .cw-row-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 13px;
+        color: var(--text);
+    }
 
-        /* Scrollbar Styling */
-        .quiz-list::-webkit-scrollbar {
-            width: 8px;
-        }
-        .quiz-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .quiz-list::-webkit-scrollbar-thumb {
-            background-color: #d1d5db;
-            border-radius: 4px;
-        }
-        .quiz-list::-webkit-scrollbar-thumb:hover {
-            background-color: #9ca3af;
-        }
+    .cw-row-name {
+        font-weight: 500;
+        opacity: 0.9;
+    }
 
-        /* Individual Quiz Card */
-        .quiz-card {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
-            transition: all 0.2s ease;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            
-            /* Force single column layout */
-            flex: 1 1 100%; 
-            width: 100%;
-            max-width: 100%;
-        }
+    .cw-row-name.cw-row-name-ytd {
+        font-weight: 700;
+        opacity: 1;
+    }
 
-        .quiz-card:hover {
-            border-color: var(--primary);
-            box-shadow: 0 4px 12px rgba(255, 127, 0, 0.15); /* Orange shadow hint */
-            transform: translateY(-2px);
-        }
+    .cw-row-value {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
 
-        /* Product Image Area */
-        .product-image {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-            border-radius: 6px;
-            background-color: #f3f4f6;
-            border: 1px solid var(--border);
-        }
+    .cw-track {
+        position: relative;
+        height: 22px;
+        background: rgba(255, 255, 255, 0.18);
+        overflow: hidden;
+    }
 
-        /* Product Name */
-        .product-name {
-            font-weight: 700;
-            color: var(--text-main);
-            font-size: 1.15rem;
-            text-align: center;
-            margin-bottom: 4px;
-        }
+    .cw-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0%;
+        background: #ffffff;
+        transition: width 1.1s cubic-bezier(0.22, 0.9, 0.32, 1);
+    }
 
-        /* Options Grid */
-        .options-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: auto;
-        }
-
-        /* Option Buttons */
-        .btn-option {
-            padding: 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-option:hover:not(:disabled) {
-            background-color: #e5e7eb;
-            border-color: #d1d5db;
-        }
-
-        .btn-option.correct {
-            background-color: var(--success);
-            color: white;
-            border-color: var(--success);
-        }
-
-        .btn-option.wrong {
-            background-color: var(--danger);
-            color: white;
-            border-color: var(--danger);
-        }
-
-        .btn-option:disabled {
-            cursor: default;
-            opacity: 0.8;
-        }
-        
-        /* Fade out disabled/unselected options slightly */
-        .quiz-card.answered .btn-option:not(.correct):not(.wrong) {
-            opacity: 0.4;
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #1f2937;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 50px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 100;
-            white-space: nowrap;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-
-        /* Empty State */
-        .empty-state {
-            width: 100%;
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-sub);
-        }
-
-        /* Mobile specific adjustments */
-        @media (max-width: 600px) {
-            .widget-header h2 {
-                font-size: 1.1rem;
-            }
-            
-            body {
-                padding: 10px;
-            }
-            
-            .quiz-list {
-                padding: 16px;
-                gap: 20px;
-            }
-        }
-    </style>
+    .cw-fill.cw-fill-ytd {
+        background: #ffffff;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+    }
+</style>
 </head>
+
 <body>
 
-    <div class="widget-container">
-        <!-- Header -->
-        <div class="widget-header">
-            <h2>PLU-Nummern Quiz</h2>
-            <span class="score-badge" id="scoreDisplay">0 / 0 Richtig</span>
-        </div>
+<div class="widget">
+    <h2 data-i18n="title"></h2>
+    <div class="cw-list" id="cwList"></div>
+</div>
 
-        <!-- Quiz List -->
-        <div class="quiz-list" id="quizListContainer">
-            <!-- Quiz items will be injected here via JS -->
-            <div class="empty-state">Lade Fragen...</div>
-        </div>
-    </div>
+<script>
+    // --- Language detection (per widgets/MULTILANGUAGE.md) ---
+    const LANG = (() => {
+        const l = navigator.language || '';
+        if (l.startsWith('de')) return 'de';
+        if (l.startsWith('fr')) return 'fr';
+        if (l.startsWith('es')) return 'es';
+        if (l.startsWith('ja')) return 'ja';
+        if (l === 'en-GB')      return 'en-GB';
+        return 'en-US';
+    })();
+    document.documentElement.lang = LANG;
 
-    <!-- Toast Notification Element -->
-    <div id="toast" class="toast">
-        <span id="toastIcon"></span>
-        <span id="toastMessage">Nachricht</span>
-    </div>
+    const LOCALE = {
+        'de': 'de-DE', 'fr': 'fr-FR', 'es': 'es-ES',
+        'ja': 'ja-JP', 'en-GB': 'en-GB', 'en-US': 'en-US'
+    }[LANG];
+    const CURRENCY = {
+        'de': 'EUR', 'fr': 'EUR', 'es': 'EUR',
+        'ja': 'JPY', 'en-GB': 'GBP', 'en-US': 'USD'
+    }[LANG];
 
-    <script>
-        /**
-         * Quiz Data Configuration
-         * Images are sourced from Unsplash source URLs for demonstration.
-         */
-        const quizData = [
-            {
-                id: 1,
-                name: "Apfel Braeburn",
-                image: "https://images.unsplash.com/photo-1570913149827-d2ac84ab3f9a?auto=format&fit=crop&w=500&q=80",
-                correctPLU: 4103,
-                options: [4103, 4133, 4017, 94011]
-            },
-            {
-                id: 2,
-                name: "Birne Kaiser Alex",
-                image: "https://images.unsplash.com/photo-1615484477778-ca3b77940c25?auto=format&fit=crop&w=500&q=80",
-                correctPLU: 4416,
-                options: [4032, 4404, 4416, 4051]
-            }
-        ];
+    // --- Translations ---
+    const T = {
+        de: {
+            title: 'Quartalsleistung',
+            ytd: 'Laufendes Jahr (YTD)',
+        },
+        fr: {
+            title: 'Performance trimestrielle',
+            ytd: 'Cumul annuel (YTD)',
+        },
+        es: {
+            title: 'Rendimiento trimestral',
+            ytd: 'Acumulado anual (YTD)',
+        },
+        ja: {
+            title: '四半期実績',
+            ytd: '年初来累計 (YTD)',
+        },
+        'en-GB': {
+            title: 'Quarterly Performance',
+            ytd: 'Year to date (YTD)',
+        },
+        'en-US': {
+            title: 'Quarterly Performance',
+            ytd: 'Year to date (YTD)',
+        },
+    };
+    const t = T[LANG] ?? T['en-US'];
 
-        // State management
-        let totalAnswered = 0;
-        let correctAnswers = 0;
+    // --- Staffbase brand color passthrough ---
+    function applySBBrand() {
+        var sb = getComputedStyle(document.documentElement).getPropertyValue('--sb-brand').trim();
+        if (sb) {
+            document.documentElement.style.setProperty('--primary', sb);
+            return;
+        }
+        try {
+            sb = window.parent.getComputedStyle(window.parent.document.documentElement)
+                    .getPropertyValue('--sb-brand').trim();
+            if (sb) document.documentElement.style.setProperty('--primary', sb);
+        } catch (e) { /* cross-origin, ignore */ }
+    }
 
-        /**
-         * Initialize the Widget
-         */
-        document.addEventListener('DOMContentLoaded', () => {
-            renderQuiz();
-        });
+    // --- Date helpers (anchor mock data to now, per CLAUDE.md #6) ---
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentQuarterIdx = Math.floor(now.getMonth() / 3); // 0-3
 
-        /**
-         * Render the list of quiz cards
-         */
-        function renderQuiz() {
-            const container = document.getElementById('quizListContainer');
-            updateScore(); // Init header
-            
-            container.innerHTML = '';
+    // Mock revenue in $M for the 5 completed quarters shown, oldest -> newest.
+    const QUARTER_REVENUE = [3.2, 3.6, 3.4, 4.1, 4.5];
 
-            quizData.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'quiz-card';
-                card.id = `card-${item.id}`;
-                
-                // Shuffle options for randomness (optional, currently static as per data)
-                // const shuffledOptions = [...item.options].sort(() => Math.random() - 0.5);
-                const shuffledOptions = item.options;
+    const quarters = [];
+    for (let i = 5; i >= 1; i--) {
+        let qIdx = currentQuarterIdx - i;
+        let year = currentYear;
+        while (qIdx < 0) { qIdx += 4; year -= 1; }
+        quarters.push({ year: year, quarter: qIdx, revenue: QUARTER_REVENUE[5 - i] });
+    }
 
-                let optionsHtml = '';
-                shuffledOptions.forEach(plu => {
-                    optionsHtml += `<button class="btn-option" onclick="handleAnswer(${item.id}, ${plu}, this)">${plu}</button>`;
+    // Estimate the in-progress current quarter's contribution to YTD.
+    const qStart = new Date(currentYear, currentQuarterIdx * 3, 1);
+    const qEnd = new Date(currentYear, currentQuarterIdx * 3 + 3, 1);
+    const daysInQuarter = (qEnd - qStart) / 86400000;
+    const daysElapsed = Math.max(0, (now - qStart) / 86400000);
+    const avgRevenue = QUARTER_REVENUE.reduce((a, b) => a + b, 0) / QUARTER_REVENUE.length;
+    const partialQuarterRevenue = avgRevenue * (daysElapsed / daysInQuarter) * 1.05;
+
+    const ytdRevenue = quarters
+        .filter(q => q.year === currentYear)
+        .reduce((sum, q) => sum + q.revenue, 0) + partialQuarterRevenue;
+
+    function quarterLabel(qtr) {
+        const q = qtr.quarter + 1;
+        if (LANG === 'ja') return qtr.year + '年 第' + q + '四半期';
+        const prefix = (LANG === 'fr' || LANG === 'es') ? 'T' : 'Q';
+        return prefix + q + ' ' + qtr.year;
+    }
+
+    const moneyFmt = new Intl.NumberFormat(LOCALE, {
+        style: 'currency',
+        currency: CURRENCY,
+        notation: 'compact',
+        maximumFractionDigits: 1
+    });
+    function formatRevenue(millions) {
+        return moneyFmt.format(millions * 1e6);
+    }
+
+    const rows = [
+        { label: t.ytd, value: ytdRevenue, isYtd: true }
+    ].concat(quarters.slice().reverse().map(q => ({
+        label: quarterLabel(q), value: q.revenue, isYtd: false
+    })));
+
+    const maxValue = Math.max.apply(null, rows.map(r => r.value));
+
+    function renderBars() {
+        const list = document.getElementById('cwList');
+        rows.forEach((row, i) => {
+            const pct = (row.value / maxValue) * 100;
+            const item = document.createElement('div');
+            item.className = 'cw-row';
+            item.innerHTML =
+                '<div class="cw-row-label">' +
+                    '<span class="cw-row-name' + (row.isYtd ? ' cw-row-name-ytd' : '') + '">' + row.label + '</span>' +
+                    '<span class="cw-row-value">' + formatRevenue(row.value) + '</span>' +
+                '</div>' +
+                '<div class="cw-track">' +
+                    '<div class="cw-fill' + (row.isYtd ? ' cw-fill-ytd' : '') + '" style="transition-delay:' + (i * 110) + 'ms"></div>' +
+                '</div>';
+            list.appendChild(item);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    item.querySelector('.cw-fill').style.width = pct + '%';
                 });
-
-                card.innerHTML = `
-                    <img src="${item.image}" alt="${item.name}" class="product-image">
-                    <div class="product-name">${item.name}</div>
-                    <div class="options-grid">
-                        ${optionsHtml}
-                    </div>
-                `;
-                
-                container.appendChild(card);
             });
-        }
+        });
+    }
 
-        /**
-         * Handle answer selection
-         */
-        function handleAnswer(itemId, selectedPLU, btnElement) {
-            const item = quizData.find(q => q.id === itemId);
-            const card = document.getElementById(`card-${itemId}`);
-            
-            // Prevent multiple clicks
-            if (card.classList.contains('answered')) return;
-            card.classList.add('answered');
+    // --- Apply translations + render on DOM ready ---
+    function init() {
+        applySBBrand();
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            if (t[key] !== undefined) el.textContent = t[key];
+        });
+        renderBars();
+    }
 
-            const allButtons = card.querySelectorAll('.btn-option');
-            
-            // Check correctness
-            const isCorrect = selectedPLU === item.correctPLU;
+    document.addEventListener('DOMContentLoaded', init);
+</script>
 
-            // Update UI
-            if (isCorrect) {
-                btnElement.classList.add('correct');
-                correctAnswers++;
-                showToast(true, "Richtig!");
-            } else {
-                btnElement.classList.add('wrong');
-                // Highlight the correct one
-                allButtons.forEach(btn => {
-                    if (parseInt(btn.innerText) === item.correctPLU) {
-                        btn.classList.add('correct');
-                    }
-                });
-                showToast(false, `Leider falsch! Richtig wäre ${item.correctPLU}`);
-            }
+<!-- Widget usage counter — see CLAUDE.md -->
+<script>(function(){try{if(location.search.indexOf('preview=1')!==-1)return;var n=location.pathname.split('/').pop();if(!n||n==='index.html')return;var url='https://widget-counter.klauejohann.workers.dev/bump/'+encodeURIComponent(n);if(navigator.sendBeacon)navigator.sendBeacon(url);else fetch(url,{method:'POST',keepalive:true}).catch(function(){});var k='widgetCounts',c=JSON.parse(localStorage.getItem(k)||'{}');c[n]=(c[n]||0)+1;localStorage.setItem(k,JSON.stringify(c));}catch(e){}})();</script>
 
-            // Disable all buttons
-            allButtons.forEach(btn => btn.disabled = true);
-
-            // Update Score
-            totalAnswered++;
-            updateScore();
-        }
-
-        /**
-         * Update the score in the header
-         */
-        function updateScore() {
-            const badge = document.getElementById('scoreDisplay');
-            badge.textContent = `${correctAnswers} / ${quizData.length} Richtig`;
-        }
-
-        /**
-         * Show a temporary toast message
-         */
-        function showToast(isSuccess, message) {
-            const toast = document.getElementById('toast');
-            const msgSpan = document.getElementById('toastMessage');
-            const iconSpan = document.getElementById('toastIcon');
-            
-            // Set Icon
-            iconSpan.innerHTML = isSuccess 
-                ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-                : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-
-            msgSpan.textContent = message;
-            toast.classList.add('show');
-            
-            // Clear existing timeout if multiple clicks happen fast
-            if (toast.timeoutId) clearTimeout(toast.timeoutId);
-
-            toast.timeoutId = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-    </script>
 </body>
 </html>
