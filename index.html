@@ -16,11 +16,11 @@
         --success: #10b981;
         --warning: #f59e0b;
         --danger: #ef4444;
-        /* Explicit design request: fixed brand-red background with white
-           bars/text, regardless of light/dark scheme. */
-        --text: #ffffff;
-        --text-light: rgba(255, 255, 255, 0.75);
-        --bg: #E1000F;
+        /* Explicit design request: fixed white background with brand-red
+           bars/text, regardless of light/dark scheme (inverted palette). */
+        --text: #E1000F;
+        --text-light: rgba(225, 0, 15, 0.75);
+        --bg: #ffffff;
         --bg-gray: #f9fafb;
         --border: #e5e7eb;
     }
@@ -30,9 +30,9 @@
             --success: #34d399;
             --warning: #fbbf24;
             --danger: #f87171;
-            --text: #ffffff;
-            --text-light: rgba(255, 255, 255, 0.75);
-            --bg: #E1000F;
+            --text: #E1000F;
+            --text-light: rgba(225, 0, 15, 0.75);
+            --bg: #ffffff;
             --bg-gray: #111827;
             --border: #374151;
         }
@@ -104,7 +104,7 @@
     .cw-track {
         position: relative;
         height: 22px;
-        background: rgba(255, 255, 255, 0.18);
+        background: rgba(225, 0, 15, 0.12);
         overflow: hidden;
     }
 
@@ -114,13 +114,13 @@
         left: 0;
         height: 100%;
         width: 0%;
-        background: #ffffff;
+        background: #E1000F;
         transition: width 1.1s cubic-bezier(0.22, 0.9, 0.32, 1);
     }
 
     .cw-fill.cw-fill-ytd {
-        background: #ffffff;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+        background: #E1000F;
+        box-shadow: 0 0 0 1px rgba(225, 0, 15, 0.6) inset;
     }
 </style>
 </head>
